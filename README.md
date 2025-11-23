@@ -15,7 +15,7 @@ Other features, like mail notifications, are offered by the upstream
 
 #### AUR
 
-Coming soon (?)
+&rarr; [evolution-tray-git](https://aur.archlinux.org/packages/evolution-tray-git)
 
 #### From Source
 
