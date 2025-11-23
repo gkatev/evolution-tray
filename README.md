@@ -11,6 +11,14 @@ Unlike Evolution On, Evolution Tray only handles tray-related functionality.
 Other features, like mail notifications, are offered by the upstream
 `mail-notification` plugin.
 
+### Notes & Limitations
+
+- Hide-on-close: Requires Evolution >= 3.58.1.
+  - [evolution/#200](https://gitlab.gnome.org/GNOME/evolution/-/merge_requests/200)
+
+- Hide-on-minimize: Doesn't work on Wayland.
+  - No proper support for detecting minimization.
+
 ### Building/Installing
 
 #### AUR
