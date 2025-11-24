@@ -26,6 +26,10 @@
 #include <libdbusmenu-glib/server.h>
 
 #include "sn.h"
+#include "tray.h"
+#include "properties.h"
+
+#define MENU_MANUAL_ACTION_ITEM_ID 101
 
 static const gchar introspection_xml[] =
 "<node>"
@@ -58,19 +62,17 @@ static void register_with_watcher(void);
 
 static void on_method_call(GDBusConnection *conn, const gchar *sender,
 	const gchar *object_path, const gchar *iface, const gchar *method_name,
-	GVariant *params, GDBusMethodInvocation *inv, gpointer user_data)
+	GVariant *params, GDBusMethodInvocation *inv, gpointer data)
 {
 	if(g_strcmp0(method_name, "Activate") == 0) {
-		void (*activate_cb)(void) = (void (*)(void)) user_data;
-		activate_cb();
-		
+		tray_action(ACTION_AUTO);
 		g_dbus_method_invocation_return_value(inv, NULL);
 	}
 }
 
 static GVariant *on_get_property(GDBusConnection *conn, const gchar *sender,
 	const gchar *object_path, const gchar *interface_name, const gchar *property_name,
-	GError **error, gpointer user_data)
+	GError **error, gpointer data)
 {
 	if(g_strcmp0(property_name, "Category") == 0)
 		return g_variant_new_string("ApplicationStatus");
@@ -92,7 +94,7 @@ static GVariant *on_get_property(GDBusConnection *conn, const gchar *sender,
 
 static void on_snw_owner_changed(GDBusConnection *conn, const gchar *sender,
 	const gchar *path, const gchar *interface, const gchar *signal_name,
-	GVariant *params, gpointer user_data)
+	GVariant *params, gpointer data)
 {
 	const gchar *name, *old_owner, *new_owner;
 	g_variant_get(params, "(&s&s&s)", &name, &old_owner, &new_owner);
@@ -131,27 +133,72 @@ static void register_with_watcher(void) {
 
 // -----------------------------
 
-static void on_menu_properties(DbusmenuMenuitem *mi,
-	guint timestamp, void (*menu_prefs_cb)(void))
-{
-	menu_prefs_cb();
+static action_enum_t manual_action;
+
+static gboolean on_menu_about_to_show(DbusmenuMenuitem *root, gpointer data) {
+	DbusmenuMenuitem *item = dbusmenu_menuitem_find_id(
+		root, MENU_MANUAL_ACTION_ITEM_ID);
+	
+	manual_action = tray_action(ACTION_QUERY);
+	
+	gchar *label, *icon;
+	
+	if(manual_action <= ACTION_HIDE) {
+		label = "Hide";
+		icon = "window-close";
+	} else {
+		label = "Activate";
+		icon = "window-open";
+	}
+	
+	dbusmenu_menuitem_property_set(item, DBUSMENU_MENUITEM_PROP_LABEL, label);
+	dbusmenu_menuitem_property_set(item, DBUSMENU_MENUITEM_PROP_ICON_NAME, icon);
+	
+	return TRUE;
 }
 
-static void on_menu_quit(DbusmenuMenuitem *mi,
-	guint timestamp, void (*menu_quit_cb)(void))
+static void on_menu_manual_action(DbusmenuMenuitem *item,
+	guint timestamp, gpointer data)
 {
-	menu_quit_cb();
+	tray_action(manual_action);
 }
 
-static DbusmenuMenuitem *build_menu(
-	void (*menu_prefs_cb)(void),
-	void (*menu_quit_cb)(void))
+static void on_menu_properties(DbusmenuMenuitem *item,
+	guint timestamp, gpointer data)
 {
+	properties_show();
+}
+
+static void on_menu_quit(DbusmenuMenuitem *item,
+	guint timestamp, gpointer data)
+{
+	quit_evolution();
+}
+
+static DbusmenuMenuitem *build_menu(void) {
 	DbusmenuMenuitem *root, *item;
 	
 	root = dbusmenu_menuitem_new();
 	
+	g_signal_connect(root, DBUSMENU_MENUITEM_SIGNAL_ABOUT_TO_SHOW,
+		G_CALLBACK(on_menu_about_to_show), NULL);
+	
+	// -----------------------
+	/* Manual Hide/Activate */
+	
+	item = dbusmenu_menuitem_new_with_id(MENU_MANUAL_ACTION_ITEM_ID);
+	
+	/* Label and icon are set in on_menu_about_to_show() */
+	
+	g_signal_connect(item, DBUSMENU_MENUITEM_SIGNAL_ITEM_ACTIVATED,
+		G_CALLBACK(on_menu_manual_action), NULL);
+	
+	dbusmenu_menuitem_child_append(root, item);
+	g_object_unref(item);
+	
+	// -------------
 	/* Properties */
+	
 	item = dbusmenu_menuitem_new();
 	
 	dbusmenu_menuitem_property_set(item,
@@ -160,12 +207,14 @@ static DbusmenuMenuitem *build_menu(
 		DBUSMENU_MENUITEM_PROP_ICON_NAME, "document-properties");
 	
 	g_signal_connect(item, DBUSMENU_MENUITEM_SIGNAL_ITEM_ACTIVATED,
-		G_CALLBACK(on_menu_properties), menu_prefs_cb);
+		G_CALLBACK(on_menu_properties), NULL);
 	
 	dbusmenu_menuitem_child_append(root, item);
 	g_object_unref(item);
 	
+	// -------
 	/* Quit */
+	
 	item = dbusmenu_menuitem_new();
 	
 	dbusmenu_menuitem_property_set(item,
@@ -174,19 +223,17 @@ static DbusmenuMenuitem *build_menu(
 		DBUSMENU_MENUITEM_PROP_ICON_NAME, "application-exit");
 	
 	g_signal_connect(item, DBUSMENU_MENUITEM_SIGNAL_ITEM_ACTIVATED,
-		G_CALLBACK(on_menu_quit), menu_quit_cb);
+		G_CALLBACK(on_menu_quit), NULL);
 	
 	dbusmenu_menuitem_child_append(root, item);
 	g_object_unref(item);
 	
+	// ---
+	
 	return root;
 }
 
-gint sn_init(const char *icon_name,
-	void (*activate_cb)(void),
-	void (*menu_prefs_cb)(void),
-	void (*menu_quit_cb)(void))
-{
+gint sn_init(const char *icon_name) {
 	GDBusProxy *bus_proxy = NULL;
 	GDBusNodeInfo *introspection_data = NULL;
 	GVariant *bus_reply = NULL;
@@ -227,7 +274,7 @@ gint sn_init(const char *icon_name,
 	
 	registration_id = g_dbus_connection_register_object(bus,
 		SNI_OBJECT_PATH, introspection_data->interfaces[0],
-		&interface_vtable, activate_cb, NULL, &error);
+		&interface_vtable, NULL, NULL, &error);
 	
 	if(registration_id == 0) {
 		g_printerr("Evolution Tray: dbus: "
@@ -238,7 +285,7 @@ gint sn_init(const char *icon_name,
 	/* Setup DBusMenu */
 	
 	menu_server = dbusmenu_server_new("/Menu");
-	DbusmenuMenuitem *root = build_menu(menu_prefs_cb, menu_quit_cb);
+	DbusmenuMenuitem *root = build_menu();
 	dbusmenu_server_set_root(menu_server, root);
 	g_object_unref(root);
 	// ---

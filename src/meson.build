@@ -1,6 +1,7 @@
 shared_library('liborg-gnome-evolution-tray',
 	[
 		'tray.c',
+		'tray.h',
 		'sn.c',
 		'sn.h',
 		'ucount.c',

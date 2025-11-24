@@ -35,12 +35,10 @@
 #include <shell/e-shell-window.h>
 #include <mail/em-event.h>
 
+#include "tray.h"
 #include "sn.h"
 #include "ucount.h"
 #include "properties.h"
-
-#define ICON_READ "mail-read"
-#define ICON_UNREAD "mail-unread"
 
 static EShellWindow *shell_window = NULL;
 
@@ -97,52 +95,90 @@ static gboolean in_mail_view(void) {
 	return g_str_equal(e_shell_window_get_active_view(shell_window), "mail");
 }
 
-static void on_activate(void) {
-	GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(shell_window));
-	GdkWindowState window_state = gdk_window_get_state(gdk_window);
+static void do_action(action_enum_t action) {
+	switch(action) {
+		case ACTION_SHOW_AND_SWITCH:
+			switch_mail_view();
+		case ACTION_SHOW:
+			show_window();
+			break;
+		
+		case ACTION_HIDE:
+			hide_window();
+			break;
+		
+		case ACTION_DEICONIFY:
+			gtk_window_deiconify(GTK_WINDOW(shell_window));
+			break;
+		
+		case ACTION_PRESENT:
+			gtk_window_present(GTK_WINDOW(shell_window));
+			switch_mail_view();
+			set_read(TRUE);
+			break;
+		
+		default:
+			break;
+	}
+}
+
+/* The 'ordinary' mode to use this method is to pass ACTION_AUTO; it
+ * will just do the appropriate action according to the current state.
+ * The alternative mode is to (1) call using ACTION_QUERY, which will
+ * determine what action needs to be done, without actually doing it,
+ * and (2) call using the returned action to actually do it. This is
+ * helpful when determining the label for the manual hide/activate
+ * menu item, to lock-in the desired action and ensure consistency
+ * between the label and the actual action, since showing the menu
+ * can alter the state. */
+action_enum_t tray_action(action_enum_t requested_action) {
+	if(requested_action < ACTION_AUTO) {
+		do_action(requested_action);
+		return requested_action;
+	}
+	
+	action_enum_t action;
+	
+	GdkWindowState window_state = gdk_window_get_state(
+		gtk_widget_get_window(GTK_WIDGET(shell_window)));
 	
 	/* If the window is iconfied, we want it to
 	 * come up when we click on the tray icon. */
 	if(window_state & GDK_WINDOW_STATE_ICONIFIED) {
-		gtk_window_deiconify(GTK_WINDOW(shell_window));
-		return;
-	}
-	
-	gboolean unread = (status == STATUS_UNREAD);
-	
-	if(gtk_widget_get_visible(GTK_WIDGET(shell_window))) {
-		/* The window is visible, the icon indicates new mail, and the user
-		 * clicked on it. Would be weird to hide it, no? (Try to) bring it
-		 * to it to the foreground instead. */
-		if(unread) {
-			gtk_window_present(GTK_WINDOW(shell_window));
-			switch_mail_view();
-			set_read(TRUE);
-		} else
-			hide_window();
+		action = ACTION_DEICONIFY;
+	} else if(gtk_widget_get_visible(GTK_WIDGET(shell_window))) {
+		if(status == STATUS_UNREAD) {
+			/* The window is visible, the icon indicates new mail, and the user
+			 * clicked on it. Would be weird to hide it, no? (Try to) bring it
+			 * to it to the foreground instead. */
+			action = ACTION_PRESENT;
+		} else {
+			action = ACTION_HIDE;
+		}
 	} else {
-		show_window();
-		
-		/* The window was hidden, the icon indicates new mail,
-		 * and the user clicked on it -> focus the mail view. */
-		if(unread)
-			switch_mail_view();
+		if(status == STATUS_UNREAD) {
+			/* The window was hidden, the icon indicates new mail,
+			 * and the user clicked on it -> focus the mail view. */
+			action = ACTION_SHOW_AND_SWITCH;
+		} else {
+			action = ACTION_SHOW;
+		}
 	}
+	
+	if(requested_action != ACTION_QUERY)
+		do_action(action);
+	
+	return action;
 }
 
-static void do_properties(void) {
-	properties_show();
-}
-
-static void do_quit(void) {
-	EShell *shell = e_shell_get_default();
-	e_shell_quit(shell, E_SHELL_QUIT_ACTION);
+void quit_evolution(void) {
+	e_shell_quit(e_shell_get_default(), E_SHELL_QUIT_ACTION);
 }
 
 // -----------------------------
 
 static gboolean on_widget_deleted(GtkWidget *widget,
-	GdkEvent *event, gpointer user_data)
+	GdkEvent *event, gpointer data)
 {
 	/* If enabled, abort the window-close and hide it instead. */
 	
@@ -180,7 +216,7 @@ static gboolean on_window_state_event(GtkWidget *widget,
 	return FALSE;
 }
 
-static void on_window_show(GtkWidget *widget, gpointer user_data) {
+static void on_window_show(GtkWidget *widget, gpointer data) {
 	/* If enabled, the first time the evolution
 	 * window is shown, hide it to the tray. */
 	if(hide_startup) {
@@ -193,7 +229,7 @@ static void on_window_show(GtkWidget *widget, gpointer user_data) {
 }
 
 static void on_window_focus_in(GtkWidget *widget,
-	GdkEventFocus *event, gpointer user_data)
+	GdkEventFocus *event, gpointer data)
 {
 	if(in_mail_view())
 		set_read(TRUE);
@@ -249,7 +285,7 @@ static gint init(void) {
 		}
 	}
 	
-	err = sn_init(ICON_READ, on_activate, do_properties, do_quit);
+	err = sn_init(ICON_READ);
 	if(err != 0) {
 		g_printerr("Evolution Tray: StatusNotifierItem init failed (%d)\n", err);
 		return -2;
