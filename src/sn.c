@@ -39,6 +39,7 @@ static const gchar introspection_xml[] =
 "	<property name='Title' type='s' access='read'/>"
 "	<property name='Status' type='s' access='read'/>"
 "	<property name='IconName' type='s' access='read'/>"
+"	<property name='ItemIsMenu' type='b' access='read'/>"
 "	<property name='Menu' type='o' access='read'/>"
 "  </interface>"
 "</node>";
@@ -81,6 +82,8 @@ static GVariant *on_get_property(GDBusConnection *conn, const gchar *sender,
 		return g_variant_new_string("Active");
 	if(g_strcmp0(property_name, "IconName") == 0)
 		return g_variant_new_string(current_icon);
+	if(g_strcmp0(property_name, "ItemIsMenu") == 0)
+		return g_variant_new_boolean(FALSE);
 	if(g_strcmp0(property_name, "Menu") == 0)
 		return g_variant_new_object_path("/Menu");
 	
