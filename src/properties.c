@@ -24,6 +24,7 @@
 #endif
 
 #include <gtk/gtk.h>
+#include <gdk/gdkwayland.h>
 #include <glib.h>
 #include <glib/gi18n.h>
 #include <glib/gprintf.h>
@@ -86,35 +87,49 @@ toggle_hidden_on_close_cb(GtkWidget *widget, gpointer data)
 static GtkWidget *
 get_cfg_widget()
 {
-	GtkWidget *container, *vbox, *check;
-	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
-	gtk_widget_show (vbox);
-	container = vbox;
-
+	GtkWidget *container, *check;
+	
+	container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	
 	check = gtk_check_button_new_with_mnemonic(_("Hidden on startup"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check),
-			is_part_enabled(TRAY_SCHEMA, CONF_KEY_HIDDEN_ON_STARTUP));
+		is_part_enabled(TRAY_SCHEMA, CONF_KEY_HIDDEN_ON_STARTUP));
 	g_signal_connect(G_OBJECT(check), "toggled",
-			G_CALLBACK(toggled_hidden_on_startup_cb), NULL);
-	gtk_widget_show(check);
+		G_CALLBACK(toggled_hidden_on_startup_cb), NULL);
 	gtk_box_pack_start(GTK_BOX(container), check, FALSE, FALSE, 0);
-
+	
 	check = gtk_check_button_new_with_mnemonic(_("Hide on minimize"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON (check),
-			is_part_enabled(TRAY_SCHEMA, CONF_KEY_HIDE_ON_MINIMIZE));
+		is_part_enabled(TRAY_SCHEMA, CONF_KEY_HIDE_ON_MINIMIZE));
 	g_signal_connect(G_OBJECT (check), "toggled",
-			G_CALLBACK(toggled_hidde_on_minimize_cb), NULL);
-	gtk_widget_show(check);
+		G_CALLBACK(toggled_hidde_on_minimize_cb), NULL);
 	gtk_box_pack_start(GTK_BOX(container), check, FALSE, FALSE, 0);
-
+	
+	if(GDK_IS_WAYLAND_DISPLAY(gdk_display_get_default())) {
+		GtkWidget *hbox, *icon, *note;
+		
+		hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+		
+		icon = gtk_image_new_from_icon_name("dialog-warning", GTK_ICON_SIZE_MENU);
+		gtk_box_pack_start(GTK_BOX(hbox), icon, FALSE, FALSE, 0);
+		
+		note = gtk_label_new(_("Will not work properly on Wayland"));
+		gtk_label_set_xalign(GTK_LABEL(note), 0.0);
+		gtk_box_pack_start(GTK_BOX(hbox), note, FALSE, FALSE, 0);
+		
+		gtk_widget_set_margin_start(hbox, 24);
+		gtk_box_pack_start(GTK_BOX(container), hbox, FALSE, FALSE, 0);
+	}
+	
 	check = gtk_check_button_new_with_mnemonic(_("Hide on close"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check),
-			is_part_enabled(TRAY_SCHEMA, CONF_KEY_HIDE_ON_CLOSE));
+		is_part_enabled(TRAY_SCHEMA, CONF_KEY_HIDE_ON_CLOSE));
 	g_signal_connect(G_OBJECT(check), "toggled",
-			G_CALLBACK(toggle_hidden_on_close_cb), NULL);
-	gtk_widget_show(check);
+		G_CALLBACK(toggle_hidden_on_close_cb), NULL);
 	gtk_box_pack_start(GTK_BOX(container), check, FALSE, FALSE, 0);
-
+	
+	gtk_widget_show_all(container);
+	
 	return container;
 }
 
