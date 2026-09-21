@@ -111,9 +111,10 @@ static void do_action(action_enum_t action) {
 			gtk_window_deiconify(GTK_WINDOW(shell_window));
 			break;
 		
+		case ACTION_PRESENT_AND_SWITCH:
+			switch_mail_view();
 		case ACTION_PRESENT:
 			gtk_window_present(GTK_WINDOW(shell_window));
-			switch_mail_view();
 			set_read(TRUE);
 			break;
 		
@@ -142,18 +143,29 @@ action_enum_t tray_action(action_enum_t requested_action) {
 	GdkWindowState window_state = gdk_window_get_state(
 		gtk_widget_get_window(GTK_WIDGET(shell_window)));
 	
-	/* If the window is iconfied, we want it to
+	/* If the window is iconified, we want it to
 	 * come up when we click on the tray icon. */
 	if(window_state & GDK_WINDOW_STATE_ICONIFIED) {
 		action = ACTION_DEICONIFY;
 	} else if(gtk_widget_get_visible(GTK_WIDGET(shell_window))) {
 		if(status == STATUS_UNREAD) {
-			/* The window is visible, the icon indicates new mail, and the user
-			 * clicked on it. Would be weird to hide it, no? (Try to) bring it
-			 * to it to the foreground instead. */
-			action = ACTION_PRESENT;
+			/* The window is visible, the icon indicates new mail,
+			 * and the user clicked on it. Bring it to the foreground,
+			 * and focus the mail view. */
+			action = ACTION_PRESENT_AND_SWITCH;
 		} else {
-			action = ACTION_HIDE;
+			/* The window is visible, and the user clicked on the icon.
+			 * Should we hide it? It could be buried under other windows,
+			 * or in another workspace, in which case the user likely wants
+			 * it presented. Ultimately, can never know for sure. Current
+			 * choice: activate the window if not currently focused, otherwise
+			 * hide it. This is also the same behavior when clicking a window's
+			 * icon in the KDE taskbar. FYI, when the window is in another
+			 * workspace, the PRESENT behavior depends on the DE; on KDE, a
+			 * setting can make PRESENT either (a) switch to the window's
+			 * workspace, or (b) bring the window to the current workspace. */
+			action = (gtk_window_is_active(GTK_WINDOW(shell_window)) ?
+				ACTION_HIDE : ACTION_PRESENT);
 		}
 	} else {
 		if(status == STATUS_UNREAD) {
