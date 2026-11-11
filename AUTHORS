@@ -1,14 +1,16 @@
-Kostadin Atanasov <pranayama111@gmail.com>
-
 Original evolution-tray plugin:
 	Initiator and Maintainer:
 		Lucian Langa  <lucilanga@gnome.org>
-
+	
 	Contributor:
 		Edwin Stang <gsubes@gmail.com>
 
+Evolution-On plugin:
+	Kostadin Atanasov <pranayama111@gmail.com>
+	
 	Clean ups:
 		Ozan Türkyılmaz <ozan.turkyilmaz@gmail.com>
 
-	StatusNotifierItem support & further work:
+Evolution Tray:
+	Return to tray-only functionality, StatusNotifierItem support and further work:
 		George Katevenis <george_kate@hotmail.com>
