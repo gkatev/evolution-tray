@@ -189,7 +189,7 @@ void quit_evolution(void) {
 
 // -----------------------------
 
-static gboolean on_widget_deleted(GtkWidget *widget,
+static gboolean on_widget_delete_event(GtkWidget *widget,
 	GdkEvent *event, gpointer data)
 {
 	/* If enabled, abort the window-close and hide it instead. */
@@ -240,7 +240,7 @@ static void on_window_show(GtkWidget *widget, gpointer data) {
 		set_read(TRUE);
 }
 
-static void on_window_focus_in(GtkWidget *widget,
+static gboolean on_window_focus_in_event(GtkWidget *widget,
 	GdkEventFocus *event, gpointer data)
 {
 	if(in_mail_view())
@@ -249,7 +249,9 @@ static void on_window_focus_in(GtkWidget *widget,
 	return FALSE;
 }
 
-static void on_active_view_change(EShellWindow *window) {
+static void on_active_view_change(EShellWindow *window,
+	GParamSpec *param, gpointer data)
+{
 	if(in_mail_view())
 		set_read(TRUE);
 }
@@ -275,18 +277,72 @@ void org_gnome_mail_folder_unread_updated(EPlugin *ep,
 
 // -----------------------------
 
-static EShellWindow *find_shell_window(void) {
+static EShellWindow *find_shell_window(EShellWindow *skip);
+
+static void connect_signals(EShellWindow *window);
+static void disconnect_signals(EShellWindow *window);
+
+static gint init(void);
+static void fini(void);
+
+/* shell_window is being destroyed. Either Evolution is shuting down,
+ * or one of possible multiple windows is being closed (possible when
+ * hide-on-close is false). To enhance the latter scenario, start
+ * tracking another window. */
+static void on_widget_destroy(GtkWidget *widget, gpointer data) {
+	EShellWindow *new_window = find_shell_window(shell_window);
+	
+	if(new_window) {
+		disconnect_signals(shell_window);
+		connect_signals(new_window);
+		shell_window = new_window;
+	} else
+		fini();
+}
+
+// -----------------------------
+
+static EShellWindow *find_shell_window(EShellWindow *skip) {
 	EShell *shell = e_shell_get_default();
 	if(!shell) return NULL;
 	
 	for(GList *list = gtk_application_get_windows(GTK_APPLICATION(shell));
 		list != NULL; list = g_list_next(list))
 	{
-		if(E_IS_SHELL_WINDOW(list->data))
+		if(E_IS_SHELL_WINDOW(list->data) && list->data != (gpointer) skip)
 			return E_SHELL_WINDOW(list->data);
 	}
 	
 	return NULL;
+}
+
+static void connect_signals(EShellWindow *window) {
+	g_signal_connect(G_OBJECT(window), "show",
+		G_CALLBACK(on_window_show), NULL);
+	
+	g_signal_connect(G_OBJECT(window), "focus-in-event",
+		G_CALLBACK(on_window_focus_in_event), NULL);
+	
+	g_signal_connect(G_OBJECT(window), "window-state-event",
+			G_CALLBACK(on_window_state_event), NULL);
+	
+	g_signal_connect(G_OBJECT(window), "delete-event",
+		G_CALLBACK(on_widget_delete_event), NULL);
+	
+	g_signal_connect(G_OBJECT(window), "destroy",
+		G_CALLBACK(on_widget_destroy), NULL);
+	
+	g_signal_connect(G_OBJECT(window), "notify::active-view",
+		G_CALLBACK(on_active_view_change), NULL);
+}
+
+static void disconnect_signals(EShellWindow *window) {
+	g_signal_handlers_disconnect_by_func(window, on_window_show, NULL);
+	g_signal_handlers_disconnect_by_func(window, on_window_focus_in_event, NULL);
+	g_signal_handlers_disconnect_by_func(window, on_window_state_event, NULL);
+	g_signal_handlers_disconnect_by_func(window, on_widget_delete_event, NULL);
+	g_signal_handlers_disconnect_by_func(window, on_widget_destroy, NULL);
+	g_signal_handlers_disconnect_by_func(window, on_active_view_change, NULL);
 }
 
 static gint init(void) {
@@ -295,7 +351,7 @@ static gint init(void) {
 	/* When init() is called from e_plugin_lib_enable(), we might not have
 	 * otherwise obtained (i.e. in e_plugin_ui_init()) the shell window. */
 	if(!shell_window) {
-		if(!(shell_window = find_shell_window())) {
+		if(!(shell_window = find_shell_window(NULL))) {
 			g_printerr("Evolution Tray: Couldn't get the EShell Window. "
 				"At least not yet - this may not be fatal\n");
 			return -1;
@@ -315,20 +371,7 @@ static gint init(void) {
 		return -3;
 	}
 	
-	g_signal_connect(G_OBJECT(shell_window), "show",
-		G_CALLBACK(on_window_show), NULL);
-	
-	g_signal_connect(G_OBJECT(shell_window), "focus-in-event",
-		G_CALLBACK(on_window_focus_in), NULL);
-	
-	g_signal_connect(G_OBJECT(shell_window), "window-state-event",
-			G_CALLBACK(on_window_state_event), NULL);
-	
-	g_signal_connect(G_OBJECT(shell_window), "delete-event",
-		G_CALLBACK(on_widget_deleted), NULL);
-	
-	g_signal_connect(G_OBJECT(shell_window), "notify::active-view",
-		G_CALLBACK(on_active_view_change), NULL);
+	connect_signals(shell_window);
 	
 	status = STATUS_READ;
 	initialized = TRUE;
@@ -337,17 +380,11 @@ static gint init(void) {
 }
 
 static void fini(void) {
-	g_signal_handlers_disconnect_by_func(shell_window, on_window_show, NULL);
-	g_signal_handlers_disconnect_by_func(shell_window, on_window_focus_in, NULL);
-	g_signal_handlers_disconnect_by_func(shell_window, on_window_state_event, NULL);
-	g_signal_handlers_disconnect_by_func(shell_window, on_widget_deleted, NULL);
-	
-	g_signal_handlers_disconnect_by_func(shell_window, on_active_view_change, NULL);
+	if(shell_window)
+		disconnect_signals(shell_window);
 	
 	ucount_fini();
 	sn_fini();
-	
-	show_window();
 	
 	shell_window = NULL;
 	initialized = FALSE;
@@ -396,8 +433,10 @@ gint e_plugin_lib_enable(EPlugin *ep, gint enable) {
 		 * Just say all is okay, and we'll try again in e_plugin_ui_init(). */
 		if(err == -1)
 			err = 0;
-	} else if(!enable && initialized)
+	} else if(!enable && initialized) {
+		show_window();
 		fini();
+	}
 	
 	return err;
 }
