@@ -79,7 +79,6 @@ static void (*global_checkpoint_reached_cb)(void) = NULL;
 
 gint ucount_init(void (*checkpoint_cb)(void)) {
 	utable = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-	if(!utable) return -1;
 	
 	global_checkpoint_reached_cb = checkpoint_cb;
 	
@@ -95,12 +94,6 @@ void ucount_fini(void) {
 static void ucount_insert(const gchar *folder, guint count) {
 	unode_t *unode = g_malloc(sizeof(unode_t));
 	gchar *key = g_strdup(folder);
-	
-	if(!unode || !key) {
-		g_free(unode);
-		g_free(key);
-		return;
-	}
 	
 	*unode = (unode_t) {.count = count, .checkpoint = count};
 	g_hash_table_insert(utable, key, unode);

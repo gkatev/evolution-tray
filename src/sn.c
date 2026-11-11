@@ -44,6 +44,7 @@ static const gchar introspection_xml[] =
 "	<property name='IconName' type='s' access='read'/>"
 "	<property name='ItemIsMenu' type='b' access='read'/>"
 "	<property name='Menu' type='o' access='read'/>"
+"	<signal name='NewIcon'/>"
 "  </interface>"
 "</node>";
 
@@ -51,7 +52,7 @@ static GDBusConnection *bus = NULL;
 static guint owner_id = 0;
 static guint registration_id = 0;
 static guint subscription_id = 0;
-DbusmenuServer *menu_server = NULL;
+static DbusmenuServer *menu_server = NULL;
 
 static const gchar *current_icon = NULL;
 
@@ -87,6 +88,9 @@ static GVariant *on_get_property(GDBusConnection *conn, const gchar *sender,
 		return g_variant_new_boolean(FALSE);
 	if(g_strcmp0(property_name, "Menu") == 0)
 		return g_variant_new_object_path("/Menu");
+	
+	g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_PROPERTY,
+		"Unknown property '%s'", property_name);
 	
 	return NULL;
 }
@@ -280,6 +284,7 @@ gint sn_init(const char *icon_name) {
 	DbusmenuMenuitem *root = build_menu();
 	dbusmenu_server_set_root(menu_server, root);
 	g_object_unref(root);
+	
 	// ---
 	
 	/* Call-me-back if/when the owner of
