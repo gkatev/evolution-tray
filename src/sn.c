@@ -107,33 +107,23 @@ static void on_snw_owner_changed(GDBusConnection *conn, const gchar *sender,
 static void register_with_watcher(void) {
 	GError *error = NULL;
 	
-	GDBusProxy *watcher_proxy = g_dbus_proxy_new_sync(bus, G_DBUS_PROXY_FLAGS_NONE,
-		NULL, "org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher",
-		"org.kde.StatusNotifierWatcher", NULL, &error);
+	GVariant *reply = g_dbus_connection_call_sync(bus,
+		"org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher",
+		"org.kde.StatusNotifierWatcher", "RegisterStatusNotifierItem",
+		g_variant_new("(s)", DBUS_SERVICE_NAME), NULL,
+		G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
 	
-	if(!watcher_proxy) {
-		g_printerr("Evolution Tray: dbus: Failed to create proxy to "
-			"StatusNotifierWatcher: %s\n", error->message);
-		g_clear_error(&error);
-		return;
-	}
-	
-	g_dbus_proxy_call_sync(watcher_proxy, "RegisterStatusNotifierItem",
-		g_variant_new("(s)", DBUS_SERVICE_NAME), G_DBUS_CALL_FLAGS_NONE,
-		-1, NULL, &error);
-	
-	if(error) {
+	if(!reply) {
 		g_printerr("Evolution Tray: dbus: Failed to register with "
 			"StatusNotifierWatcher: %s\n", error->message);
-	}
-	
-	g_object_unref(watcher_proxy);
-	g_clear_error(&error);
+		g_clear_error(&error);
+	} else
+		g_variant_unref(reply);
 }
 
 // -----------------------------
 
-static action_enum_t manual_action;
+static action_enum_t manual_action = ACTION_AUTO;
 
 static gboolean on_menu_about_to_show(DbusmenuMenuitem *root, gpointer data) {
 	DbusmenuMenuitem *item = dbusmenu_menuitem_find_id(
@@ -188,7 +178,11 @@ static DbusmenuMenuitem *build_menu(void) {
 	
 	item = dbusmenu_menuitem_new_with_id(MENU_MANUAL_ACTION_ITEM_ID);
 	
-	/* Label and icon are set in on_menu_about_to_show() */
+	/* Label and icon are set in on_menu_about_to_show(), but in case
+	 * ABOUT_TO_SHOW is not implemented (apparently it's not mandatory),
+	 * set something generic so the label is not empty. */
+	dbusmenu_menuitem_property_set(item, DBUSMENU_MENUITEM_PROP_LABEL,
+		"Show/Hide");
 	
 	g_signal_connect(item, DBUSMENU_MENUITEM_SIGNAL_ITEM_ACTIVATED,
 		G_CALLBACK(on_menu_manual_action), NULL);
@@ -234,7 +228,6 @@ static DbusmenuMenuitem *build_menu(void) {
 }
 
 gint sn_init(const char *icon_name) {
-	GDBusProxy *bus_proxy = NULL;
 	GDBusNodeInfo *introspection_data = NULL;
 	GVariant *bus_reply = NULL;
 	GError *error = NULL;
@@ -298,22 +291,14 @@ gint sn_init(const char *icon_name) {
 		"/org/freedesktop/DBus", "org.kde.StatusNotifierWatcher",
 		G_DBUS_SIGNAL_FLAGS_NONE, on_snw_owner_changed, NULL, NULL);
 	
-	/* Create a proxy and check if a watcher already exists. If not, do
-	 * nothing -- we'll call register in the NameOwnerChanged callback. */
+	/* Check if a watcher already exists. If not, do nothing;
+	 * we'll call register in the NameOwnerChanged callback. */
 	
-	bus_proxy = g_dbus_proxy_new_sync(bus, G_DBUS_PROXY_FLAGS_NONE,
-		NULL, "org.freedesktop.DBus", "/org/freedesktop/DBus",
-		"org.freedesktop.DBus", NULL, &error);
-	
-	if(!bus_proxy) {
-		g_printerr("Evolution Tray: dbus: "
-			"Failed to create DBus proxy: %s\n", error->message);
-		goto end;
-	}
-	
-	bus_reply = g_dbus_proxy_call_sync(bus_proxy, "NameHasOwner",
+	bus_reply = g_dbus_connection_call_sync(bus,
+		"org.freedesktop.DBus", "/org/freedesktop/DBus",
+		"org.freedesktop.DBus", "NameHasOwner",
 		g_variant_new("(s)", "org.kde.StatusNotifierWatcher"),
-		G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
+		G_VARIANT_TYPE("(b)"), G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
 	
 	if(!bus_reply) {
 		g_printerr("Evolution Tray: dbus: "
@@ -330,7 +315,6 @@ gint sn_init(const char *icon_name) {
 	
 end:
 	
-	g_clear_object(&bus_proxy);
 	g_clear_pointer(&introspection_data, g_dbus_node_info_unref);
 	g_clear_pointer(&bus_reply, g_variant_unref);
 	g_clear_error(&error);
