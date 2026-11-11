@@ -1,7 +1,7 @@
 /* Evoution Tray plugin, fork of Evolution On
  *  Copyright (C) 2008-2012 Lucian Langa <cooly@gnome.eu.org>
- *  Copyright (C) 2022 Ozan Türkyılmaz <ozan.turkyilmaz@gmail.com>
- *  Copyright (C) 2023-2025 George Katevenis <george_kate@hotmail.com>
+ *  Copyright (C) 2022      Ozan Türkyılmaz <ozan.turkyilmaz@gmail.com>
+ *  Copyright (C) 2023-2026 George Katevenis <george_kate@hotmail.com>
  * 
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -189,7 +189,7 @@ static gboolean on_widget_delete_event(GtkWidget *widget,
 {
 	/* If enabled, abort the window-close and hide it instead. */
 	
-	if(is_part_enabled(TRAY_SCHEMA, CONF_KEY_HIDE_ON_CLOSE)) {
+	if(is_option_enabled(CONF_KEY_HIDE_ON_CLOSE)) {
 		hide_window();
 		return TRUE; // we've handled it, don't run any more handlers
 	}
@@ -211,7 +211,7 @@ static gboolean on_window_state_event(GtkWidget *widget,
 	 * all subsequently emitted events will have the WITHDRAWN flag, so just
 	 * ignore all invocations that contain it. */
 	
-	if(is_part_enabled(TRAY_SCHEMA, CONF_KEY_HIDE_ON_MINIMIZE)
+	if(is_option_enabled(CONF_KEY_HIDE_ON_MINIMIZE)
 		&& (event->changed_mask & GDK_WINDOW_STATE_ICONIFIED)
 		&& (event->new_window_state & GDK_WINDOW_STATE_ICONIFIED)
 		&& !(event->new_window_state & GDK_WINDOW_STATE_WITHDRAWN))
@@ -400,7 +400,7 @@ gboolean e_plugin_ui_init(GtkUIManager *ui_manager, EShellView *shell_view) {
 	 * at a later point. And we only do it the first time ui_init is
 	 * called (it's called every time a window is created). */
 	if(!checked_for_hide) {
-		if(is_part_enabled(TRAY_SCHEMA, CONF_KEY_HIDDEN_ON_STARTUP))
+		if(is_option_enabled(CONF_KEY_HIDDEN_ON_STARTUP))
 			hide_startup = TRUE;
 		
 		checked_for_hide = TRUE;

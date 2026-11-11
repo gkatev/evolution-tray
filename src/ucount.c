@@ -1,5 +1,5 @@
 /* Evoution On plugin
- *  Copyright (C) 2025 George Katevenis <george_kate@hotmail.com>
+ *  Copyright (C) 2025-2026 George Katevenis <george_kate@hotmail.com>
  * 
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by

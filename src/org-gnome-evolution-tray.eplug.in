@@ -7,7 +7,7 @@
 	domain="@GETTEXT_PACKAGE@"
 	localedir="@LOCALEDIR@"
 	name="Evolution Tray">
-	<description>Support for minimizing Evolution to the system tray</description>
+	<description>Support for minimizing Evolution to the system tray.</description>
 	<author name="Lucian Langa" email="lucilanga@gnome.org"/>
 	<author name="Kostadin Atanasov" email="pranayama111@gmail.com"/>
 	<author name="Ozan Türkyılmaz" email="ozan.turkyilmaz@gmail.com"/>
