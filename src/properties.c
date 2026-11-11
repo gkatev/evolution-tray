@@ -82,6 +82,22 @@ static void toggle_hidden_on_close_cb(GtkWidget *widget, gpointer data) {
 // Properties widget
 // -----------------
 
+static void add_note(GtkWidget *container, const gchar *text) {
+	GtkWidget *hbox, *icon, *note;
+	
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	
+	icon = gtk_image_new_from_icon_name("dialog-warning", GTK_ICON_SIZE_MENU);
+	gtk_box_pack_start(GTK_BOX(hbox), icon, FALSE, FALSE, 0);
+	
+	note = gtk_label_new(text);
+	gtk_label_set_xalign(GTK_LABEL(note), 0.0);
+	gtk_box_pack_start(GTK_BOX(hbox), note, FALSE, FALSE, 0);
+	
+	gtk_widget_set_margin_start(hbox, 24);
+	gtk_box_pack_start(GTK_BOX(container), hbox, FALSE, FALSE, 0);
+}
+
 static GtkWidget *get_cfg_widget(void) {
 	GtkWidget *container, *check;
 	
@@ -112,21 +128,8 @@ static GtkWidget *get_cfg_widget(void) {
 	gtk_box_pack_start(GTK_BOX(container), check, FALSE, FALSE, 0);
 	
 #ifdef GDK_WINDOWING_WAYLAND
-	if(GDK_IS_WAYLAND_DISPLAY(gdk_display_get_default())) {
-		GtkWidget *hbox, *icon, *note;
-		
-		hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-		
-		icon = gtk_image_new_from_icon_name("dialog-warning", GTK_ICON_SIZE_MENU);
-		gtk_box_pack_start(GTK_BOX(hbox), icon, FALSE, FALSE, 0);
-		
-		note = gtk_label_new(_("Will not work properly on Wayland"));
-		gtk_label_set_xalign(GTK_LABEL(note), 0.0);
-		gtk_box_pack_start(GTK_BOX(hbox), note, FALSE, FALSE, 0);
-		
-		gtk_widget_set_margin_start(hbox, 24);
-		gtk_box_pack_start(GTK_BOX(container), hbox, FALSE, FALSE, 0);
-	}
+	if(GDK_IS_WAYLAND_DISPLAY(gdk_display_get_default()))
+		add_note(container, _("Will not work properly on Wayland"));
 #endif
 	
 	// ---
@@ -140,6 +143,10 @@ static GtkWidget *get_cfg_widget(void) {
 		G_CALLBACK(toggle_hidden_on_close_cb), NULL);
 	
 	gtk_box_pack_start(GTK_BOX(container), check, FALSE, FALSE, 0);
+	
+#if !EVOLUTION_HAS_HIDE_ON_CLOSE
+	add_note(container, _("Requires Evolution >= 3.58.1"));
+#endif
 	
 	// ---
 	

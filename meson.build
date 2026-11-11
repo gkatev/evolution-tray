@@ -40,6 +40,9 @@ conf_data.set('EDS_DISABLE_DEPRECATED', true)
 conf_data.set10('EVOLUTION_HAS_EUIMANAGER',
 	evolutionshell.version().version_compare('>=3.55.1'))
 
+conf_data.set10('EVOLUTION_HAS_HIDE_ON_CLOSE',
+	evolutionshell.version().version_compare('>=3.58.1'))
+
 conf_data.set_quoted('GETTEXT_PACKAGE', meson.project_name())
 
 configure_file(
