@@ -245,6 +245,8 @@ static void on_window_focus_in(GtkWidget *widget,
 {
 	if(in_mail_view())
 		set_read(TRUE);
+	
+	return FALSE;
 }
 
 static void on_active_view_change(EShellWindow *window) {
@@ -257,6 +259,9 @@ static void on_active_view_change(EShellWindow *window) {
 void org_gnome_mail_folder_unread_updated(EPlugin *ep,
 	EMEventTargetFolderUnread *t)
 {
+	if(!initialized)
+		return;
+	
 	// Apparently, this can happen.
 	if(t->unread == (guint) -1)
 		return;
@@ -354,12 +359,20 @@ gboolean e_plugin_ui_init(GtkUIManager *ui_manager, EShellView *shell_view) {
 #else
 gboolean e_plugin_ui_init(EUIManager *ui_manager, EShellView *shell_view) {
 #endif
+	
+	static gboolean checked_for_hide = FALSE;
+	
 	/* If hide-on-startup is enabled, mark the pending hide-action.
-	 * We only do this from ui_init(), i.e. only when evolution is
-	 * actually starting up, not if our plugin is merely being
-	 * enabled at a later point. */
-	if(is_part_enabled(TRAY_SCHEMA, CONF_KEY_HIDDEN_ON_STARTUP))
-		hide_startup = TRUE;
+	 * We do this only here, when evolution is starting up, and not
+	 * in plugin_enable(), which also runs when the plugin is enabled
+	 * at a later point. And we only do it the first time ui_init is
+	 * called (it's called every time a window is created). */
+	if(!checked_for_hide) {
+		if(is_part_enabled(TRAY_SCHEMA, CONF_KEY_HIDDEN_ON_STARTUP))
+			hide_startup = TRUE;
+		
+		checked_for_hide = TRUE;
+	}
 	
 	gint err = 0;
 	

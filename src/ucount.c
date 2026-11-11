@@ -29,8 +29,8 @@
  * in the table to determine if there's a new email.
  *
  * We also want to know when emails have been read, so that we may undo
- * the 'unread' status, in scenarios where all new mails were read in
- * another client. This is also be achieved with the count entry (but
+ * the 'unread' status in scenarios where all new mails were read in
+ * another client. This is also achieved with the count entry (but
  * see below for caveat). To avoid checking the entire hash table
  * whenever we get a new event, we keep a table-global counter that
  * tracks how many folders have new emails at any given time.
