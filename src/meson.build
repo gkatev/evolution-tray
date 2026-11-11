@@ -1,27 +1,11 @@
-shared_library('liborg-gnome-evolution-tray',
-	[
-		'tray.c',
-		'tray.h',
-		'sn.c',
-		'sn.h',
-		'ucount.c',
-		'ucount.h',
-		'properties.c',
-		'properties.h',
-	],
+shared_library('org-gnome-evolution-tray',
+	['tray.c', 'sn.c', 'ucount.c', 'properties.c'],
 	
-	name_prefix: '',
+	dependencies: [evolutionshell, evolutionmail,
+		libemailengine, gtk, glib, dbusmenuglib],
 	
-	dependencies: [
-		evolutionshell,
-		evolutionmail,
-		libemailengine,
-		gtk,
-		glib,
-		dbusmenuglib,
-	],
+	include_directories: config_inc,
 	
 	install: true,
 	install_dir: plugindir,
-	install_mode: 'rwxr-xr-x',
 )

@@ -16,12 +16,11 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include <gio/gio.h>
 #include <glib/gprintf.h>
+#include <glib/gi18n-lib.h>
 
 #include <libdbusmenu-glib/server.h>
 
@@ -134,10 +133,10 @@ static gboolean on_menu_about_to_show(DbusmenuMenuitem *root, gpointer data) {
 	gchar *label, *icon;
 	
 	if(manual_action <= ACTION_HIDE) {
-		label = "Hide";
+		label = _("Hide");
 		icon = "window-close";
 	} else {
-		label = "Activate";
+		label = _("Activate");
 		icon = "window-open";
 	}
 	
@@ -196,7 +195,7 @@ static DbusmenuMenuitem *build_menu(void) {
 	item = dbusmenu_menuitem_new();
 	
 	dbusmenu_menuitem_property_set(item,
-		DBUSMENU_MENUITEM_PROP_LABEL, "_Properties");
+		DBUSMENU_MENUITEM_PROP_LABEL, _("_Properties"));
 	dbusmenu_menuitem_property_set(item,
 		DBUSMENU_MENUITEM_PROP_ICON_NAME, "document-properties");
 	
@@ -212,7 +211,7 @@ static DbusmenuMenuitem *build_menu(void) {
 	item = dbusmenu_menuitem_new();
 	
 	dbusmenu_menuitem_property_set(item,
-		DBUSMENU_MENUITEM_PROP_LABEL, "_Quit");
+		DBUSMENU_MENUITEM_PROP_LABEL, _("_Quit"));
 	dbusmenu_menuitem_property_set(item,
 		DBUSMENU_MENUITEM_PROP_ICON_NAME, "application-exit");
 	

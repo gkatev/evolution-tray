@@ -19,14 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include <gtk/gtk.h>
 #include <gdk/gdkwayland.h>
 #include <glib.h>
-#include <glib/gi18n.h>
+#include <glib/gi18n-lib.h>
 #include <glib/gprintf.h>
 
 #include <e-util/e-util.h>

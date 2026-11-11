@@ -18,15 +18,10 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
-
-#include <string.h>
 
 #include <gtk/gtk.h>
 #include <glib.h>
-#include <glib/gi18n.h>
 #include <glib/gprintf.h>
 
 #include <e-util/e-util.h>
@@ -391,10 +386,10 @@ static void fini(void) {
 	status = STATUS_READ;
 }
 
-#if EVOLUTION_VERSION < 35510
-gboolean e_plugin_ui_init(GtkUIManager *ui_manager, EShellView *shell_view) {
-#else
+#if EVOLUTION_HAS_EUIMANAGER
 gboolean e_plugin_ui_init(EUIManager *ui_manager, EShellView *shell_view) {
+#else
+gboolean e_plugin_ui_init(GtkUIManager *ui_manager, EShellView *shell_view) {
 #endif
 	
 	static gboolean checked_for_hide = FALSE;

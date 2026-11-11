@@ -57,9 +57,7 @@
  * operates according to the 'new' scenario.
  */
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include <gio/gio.h>
 #include <glib/gprintf.h>
