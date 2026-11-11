@@ -4,6 +4,7 @@
 #define DBUS_SERVICE_NAME "org.gnome.evolution.plugin.evolution-tray"
 #define SNI_INTERFACE "org.kde.StatusNotifierItem"
 #define SNI_OBJECT_PATH "/StatusNotifierItem"
+#define DBUSMENU_OBJECT_PATH "/Menu"
 
 int sn_init(const char *icon_name);
 

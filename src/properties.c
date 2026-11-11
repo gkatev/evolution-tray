@@ -29,7 +29,6 @@
 
 #include <glib.h>
 #include <glib/gi18n-lib.h>
-#include <glib/gprintf.h>
 
 #include <e-util/e-util.h>
 
@@ -42,7 +41,7 @@ static GSettings *get_gsettings(void) {
 	static GSettings *settings = NULL;
 	
 	if(!settings)
-		settings = g_settings_new(TRAY_SCHEMA);
+		settings = g_settings_new(SETTINGS_SCHEMA);
 	
 	return settings;
 }

@@ -22,7 +22,6 @@
 
 #include <gtk/gtk.h>
 #include <glib.h>
-#include <glib/gprintf.h>
 
 #include <e-util/e-util.h>
 #include <shell/e-shell.h>

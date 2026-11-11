@@ -60,7 +60,6 @@
 #include "config.h"
 
 #include <gio/gio.h>
-#include <glib/gprintf.h>
 
 #include "ucount.h"
 
@@ -117,7 +116,6 @@ gint ucount_event(const gchar *folder, guint count) {
 	unode->count = count;
 	
 	if(count > prev_count) {
-		
 		// if was at checkpoint, and now aren't
 		if(was_at_checkpoint)
 			n_folders_over_checkpoint++;

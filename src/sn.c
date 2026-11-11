@@ -19,7 +19,6 @@
 #include "config.h"
 
 #include <gio/gio.h>
-#include <glib/gprintf.h>
 #include <glib/gi18n-lib.h>
 
 #include <libdbusmenu-glib/server.h>
@@ -87,7 +86,7 @@ static GVariant *on_get_property(GDBusConnection *conn, const gchar *sender,
 	if(g_strcmp0(property_name, "ItemIsMenu") == 0)
 		return g_variant_new_boolean(FALSE);
 	if(g_strcmp0(property_name, "Menu") == 0)
-		return g_variant_new_object_path("/Menu");
+		return g_variant_new_object_path(DBUSMENU_OBJECT_PATH);
 	
 	g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_PROPERTY,
 		"Unknown property '%s'", property_name);
@@ -134,7 +133,7 @@ static gboolean on_menu_about_to_show(DbusmenuMenuitem *root, gpointer data) {
 	
 	manual_action = tray_action(ACTION_QUERY);
 	
-	gchar *label, *icon;
+	const gchar *label, *icon;
 	
 	if(manual_action <= ACTION_HIDE) {
 		label = _("Hide");
@@ -280,7 +279,7 @@ gint sn_init(const char *icon_name) {
 	
 	/* Setup DBusMenu */
 	
-	menu_server = dbusmenu_server_new("/Menu");
+	menu_server = dbusmenu_server_new(DBUSMENU_OBJECT_PATH);
 	DbusmenuMenuitem *root = build_menu();
 	dbusmenu_server_set_root(menu_server, root);
 	g_object_unref(root);
