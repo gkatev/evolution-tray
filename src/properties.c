@@ -170,7 +170,7 @@ void properties_show(void) {
 
 	gtk_box_pack_start(GTK_BOX (vbox), cfg, TRUE, TRUE, 0);
 
-	dialog = gtk_dialog_new_with_buttons(_("Evolution On Properties"),
+	dialog = gtk_dialog_new_with_buttons(_("Evolution Tray Properties"),
 			NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
 			_("_Close"), GTK_RESPONSE_CLOSE, NULL);
 
